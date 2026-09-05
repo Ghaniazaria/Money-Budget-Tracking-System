@@ -9,9 +9,9 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <div id="toast-container" className="fixed bottom-16 md:bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-      {toasts.map((toast) => (
+      {toasts.map((toast, index) => (
         <div
-          key={toast.id}
+          key={`${toast.id}-${index}`}
           className="pointer-events-auto bg-neutral-900 text-white p-3.5 rounded-xl shadow-xl border border-neutral-800 flex items-start gap-3 transition-all animate-in fade-in slide-in-from-bottom-2"
         >
           <div className="shrink-0 mt-0.5">

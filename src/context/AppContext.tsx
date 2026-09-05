@@ -15,8 +15,10 @@ import {
   Currency,
   WorkspaceType,
   NoteItem,
-  TaskItem
+  TaskItem,
+  UserProfile
 } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { 
   formatCurrency as formatCurrencyUtil, 
   convertCurrency as convertCurrencyUtil, 
@@ -166,6 +168,21 @@ interface AppContextType {
   toasts: ToastNotification[];
   showToast: (title: string, message: string, type?: 'success' | 'info' | 'warning') => void;
   dismissToast: (id: string) => void;
+
+  // Supabase Auth & Profile
+  user: any;
+  userProfile: UserProfile | null;
+  authLoading: boolean;
+  isGuestDemo: boolean;
+  login: (email: string, password: string) => Promise<{ error: any }>;
+  register: (
+    email: string, 
+    password: string, 
+    fullName?: string, 
+    workspaceChoice?: 'student' | 'freelancer'
+  ) => Promise<{ error: any; confirmationRequired?: boolean }>;
+  logout: () => Promise<void>;
+  bypassDemoAuth: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -363,7 +380,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const showToast = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'success') => {
-    const id = 'toast-' + Date.now();
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setToasts((prev) => [...prev, { id, title, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -372,6 +389,320 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Supabase Auth State
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isGuestDemo, setIsGuestDemo] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('flowledger-guest-demo') === 'true';
+    }
+    return false;
+  });
+
+  // Load user data from Supabase
+  const loadUserData = async (userId: string) => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      // 1. Profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      let currentWs: WorkspaceType = 'student';
+      if (profileData) {
+        currentWs = profileData.workspace_type || 'student';
+        setUserProfile({
+          id: profileData.id,
+          email: profileData.email,
+          fullName: profileData.full_name,
+          workspaceType: profileData.workspace_type,
+          currency: profileData.currency || 'IDR',
+          language: profileData.language || 'id',
+        });
+        setWorkspaceType(currentWs);
+        if (profileData.full_name) {
+          setWorkspaceName(profileData.full_name);
+        }
+      }
+
+      // 2. Budget Categories
+      const { data: catData } = await supabase
+        .from('budget_categories')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+
+      if (catData && catData.length > 0) {
+        setCategories(catData.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          group: c.group,
+          planned: Number(c.planned),
+          iconName: c.icon_name || 'Tag',
+          notes: c.notes || undefined
+        })));
+      } else {
+        const seeds = currentWs === 'student' ? STUDENT_BUDGET_CATEGORIES : INITIAL_CATEGORIES;
+        setCategories(seeds);
+        const toInsert = seeds.map((s) => ({
+          user_id: userId,
+          name: s.name,
+          group: s.group,
+          planned: s.planned,
+          icon_name: s.iconName || 'Tag',
+          workspace: currentWs
+        }));
+        await supabase.from('budget_categories').insert(toInsert);
+      }
+
+      // 3. Transactions
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+
+      if (txData && txData.length > 0) {
+        setTransactions(txData.map((t: any) => ({
+          id: t.id,
+          description: t.description,
+          amount: Number(t.amount),
+          type: t.type,
+          categoryId: t.category_id || '',
+          date: t.date,
+          isRecurring: t.is_recurring,
+          note: t.note || undefined
+        })));
+      }
+
+      // 4. Notes
+      const { data: noteData } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('pinned', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (noteData && noteData.length > 0) {
+        setNotes(noteData.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          content: n.content || '',
+          category: n.category,
+          subject: n.subject || undefined,
+          tags: n.tags || [],
+          pinned: Boolean(n.pinned),
+          color: n.color || 'emerald',
+          workspace: n.workspace || 'all',
+          createdAt: n.created_at,
+          updatedAt: n.updated_at
+        })));
+      }
+
+      // 5. Tasks
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('due_date', { ascending: true });
+
+      if (taskData && taskData.length > 0) {
+        setTasks(taskData.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || undefined,
+          dueDate: t.due_date,
+          dueTime: t.due_time || '23:59',
+          priority: t.priority,
+          status: t.status,
+          category: t.category,
+          subjectOrProject: t.subject_or_project || undefined,
+          workspace: t.workspace || 'all',
+          completedAt: t.completed_at || undefined
+        })));
+      }
+    } catch (err) {
+      console.warn('Error syncing data with Supabase:', err);
+    }
+  };
+
+  // Auth Listener
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setAuthLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+      if (currentUser) {
+        loadUserData(currentUser.id);
+      }
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+      if (currentUser) {
+        setIsGuestDemo(false);
+        try { localStorage.removeItem('flowledger-guest-demo'); } catch {}
+        loadUserData(currentUser.id);
+      } else {
+        setUserProfile(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    if (!isSupabaseConfigured()) {
+      const demoUser = { id: 'demo-user-1', email };
+      setUser(demoUser);
+      setUserProfile({
+        id: 'demo-user-1',
+        email,
+        fullName: email.split('@')[0],
+        workspaceType: workspaceType === 'freelance' ? 'freelancer' : (workspaceType as any),
+        currency,
+        language
+      });
+      showToast(
+        language === 'id' ? 'Login Demo Berhasil' : 'Demo Login Successful', 
+        `Masuk sebagai ${email}`, 
+        'success'
+      );
+      return { error: null };
+    }
+    const res = await supabase.auth.signInWithPassword({ email, password });
+    if (res.error) {
+      showToast(
+        language === 'id' ? 'Login Gagal' : 'Login Failed', 
+        res.error.message, 
+        'warning'
+      );
+    } else {
+      showToast(
+        language === 'id' ? 'Login Berhasil' : 'Login Successful', 
+        language === 'id' ? 'Selamat datang kembali!' : 'Welcome back!', 
+        'success'
+      );
+    }
+    return { error: res.error };
+  };
+
+  const register = async (
+    email: string, 
+    password: string, 
+    fullName?: string, 
+    workspaceChoice: 'student' | 'freelancer' = 'student'
+  ) => {
+    if (!isSupabaseConfigured()) {
+      const demoId = 'demo-user-' + Date.now();
+      setUser({ id: demoId, email });
+      setUserProfile({
+        id: demoId,
+        email,
+        fullName: fullName || email.split('@')[0],
+        workspaceType: workspaceChoice,
+        currency,
+        language
+      });
+      switchWorkspace(workspaceChoice);
+      showToast(
+        language === 'id' ? 'Registrasi Demo Berhasil' : 'Demo Registration Successful',
+        language === 'id' ? `Akun ${workspaceChoice} dibuat.` : `${workspaceChoice} account created.`,
+        'success'
+      );
+      return { error: null };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || email.split('@')[0],
+          workspace_type: workspaceChoice,
+        }
+      }
+    });
+
+    if (error) {
+      showToast(
+        language === 'id' ? 'Registrasi Gagal' : 'Registration Failed', 
+        error.message, 
+        'warning'
+      );
+      return { error };
+    }
+
+    if (data?.user) {
+      try {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email,
+          full_name: fullName || email.split('@')[0],
+          workspace_type: workspaceChoice,
+          currency: 'IDR',
+          language: 'id'
+        });
+        const seeds = workspaceChoice === 'student' ? STUDENT_BUDGET_CATEGORIES : INITIAL_CATEGORIES;
+        const toInsert = seeds.map((s) => ({
+          user_id: data.user.id,
+          name: s.name,
+          group: s.group,
+          planned: s.planned,
+          icon_name: s.iconName || 'Tag',
+          workspace: workspaceChoice
+        }));
+        await supabase.from('budget_categories').insert(toInsert);
+      } catch (profileErr) {
+        console.warn('Profile creation fallback:', profileErr);
+      }
+    }
+
+    const confirmationRequired = !data?.session;
+    return { error: null, confirmationRequired };
+  };
+
+  const logout = async () => {
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setUserProfile(null);
+    setIsGuestDemo(false);
+    try {
+      localStorage.removeItem('flowledger-guest-demo');
+    } catch {}
+    showToast(
+      language === 'id' ? 'Berhasil Keluar' : 'Logged out',
+      language === 'id' ? 'Sesi Anda telah diakhiri.' : 'You have signed out.',
+      'info'
+    );
+  };
+
+  const bypassDemoAuth = () => {
+    setIsGuestDemo(true);
+    try {
+      localStorage.setItem('flowledger-guest-demo', 'true');
+    } catch {}
+    showToast(
+      language === 'id' ? 'Mode Tamu Aktif' : 'Guest Mode Active',
+      language === 'id' ? 'Mengeksplorasi aplikasi dengan data lokal.' : 'Exploring app with local data.',
+      'info'
+    );
   };
 
   // Dynamically compute category spending from transactions in current month
@@ -434,10 +765,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const category = categories.find((c) => c.id === txData.categoryId);
     const newTx: Transaction = {
       ...txData,
-      id: 'tx-' + Date.now(),
+      id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       categoryName: category?.name || txData.categoryName || 'General'
     };
     setTransactions((prev) => [newTx, ...prev]);
+
+    // Supabase persist
+    if (user && isSupabaseConfigured()) {
+      supabase.from('transactions').insert({
+        user_id: user.id,
+        description: txData.description,
+        amount: txData.amount,
+        type: txData.type,
+        category_id: (txData.categoryId && !txData.categoryId.startsWith('cat-')) ? txData.categoryId : null,
+        date: txData.date,
+        is_recurring: Boolean(txData.isRecurring),
+        note: txData.note || null,
+        workspace: workspaceType
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase insert transaction error:', error);
+      });
+    }
 
     // Update project or client if affiliated
     if (txData.projectId && txData.type === 'income') {
@@ -465,16 +813,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const category = categories.find((c) => c.id === txData.categoryId);
     const newTx: Transaction = {
       ...txData,
-      id: 'tx-' + Date.now(),
+      id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       categoryName: category?.name || txData.categoryName || 'General',
       receiptData: receipt,
       hasReceipt: true
     };
     setTransactions((prev) => [newTx, ...prev]);
 
+    if (user && isSupabaseConfigured()) {
+      supabase.from('transactions').insert({
+        user_id: user.id,
+        description: txData.description,
+        amount: txData.amount,
+        type: txData.type,
+        category_id: (txData.categoryId && !txData.categoryId.startsWith('cat-')) ? txData.categoryId : null,
+        date: txData.date,
+        is_recurring: Boolean(txData.isRecurring),
+        note: txData.note || null,
+        workspace: workspaceType
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase insert transaction error:', error);
+      });
+    }
+
     // Automatically file document receipt into the Documents vault
     const newDoc: DocumentItem = {
-      id: 'doc-' + Date.now(),
+      id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: `Receipt: ${receipt.merchant} (${formatCurrency(newTx.amount)})`,
       category: 'receipt',
       uploadDate: newTx.date,
@@ -493,6 +857,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteTransaction = (id: string) => {
     const target = transactions.find((t) => t.id === id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+
+    if (user && isSupabaseConfigured()) {
+      supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id).then(({ error }) => {
+        if (error) console.warn('Supabase delete transaction error:', error);
+      });
+    }
+
     if (target) {
       showToast(
         language === 'id' ? 'Transaksi Dihapus' : 'Transaction removed',
@@ -512,9 +883,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addCategory = (catData: Omit<BudgetCategory, 'id'>) => {
     const newCat: BudgetCategory = {
       ...catData,
-      id: 'cat-' + Date.now()
+      id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     };
     setCategories((prev) => [...prev, newCat]);
+
+    if (user && isSupabaseConfigured()) {
+      supabase.from('budget_categories').insert({
+        user_id: user.id,
+        name: catData.name,
+        group: catData.group,
+        planned: catData.planned,
+        icon_name: catData.iconName || 'Tag',
+        workspace: workspaceType
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase insert category error:', error);
+      });
+    }
+
     showToast(
       language === 'id' ? 'Kategori Dibuat' : 'Category created',
       language === 'id' 
@@ -527,24 +912,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, planned: Math.max(0, planned) } : c))
     );
+
+    if (user && isSupabaseConfigured() && !id.startsWith('cat-')) {
+      supabase.from('budget_categories').update({
+        planned: Math.max(0, planned),
+        updated_at: new Date().toISOString()
+      }).eq('id', id).eq('user_id', user.id).then();
+    }
   };
 
   const updateCategoryName = (id: string, name: string) => {
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name } : c))
     );
+
+    if (user && isSupabaseConfigured() && !id.startsWith('cat-')) {
+      supabase.from('budget_categories').update({
+        name: name.trim(),
+        updated_at: new Date().toISOString()
+      }).eq('id', id).eq('user_id', user.id).then();
+    }
   };
 
   const deleteCategory = (id: string) => {
     const cat = categories.find((c) => c.id === id);
     setCategories((prev) => prev.filter((c) => c.id !== id));
+
+    if (user && isSupabaseConfigured() && !id.startsWith('cat-')) {
+      supabase.from('budget_categories').delete().eq('id', id).eq('user_id', user.id).then();
+    }
+
     showToast('Category deleted', `Removed category "${cat?.name || id}"`);
   };
 
   const addProject = (projData: Omit<Project, 'id' | 'paid' | 'outstanding'>) => {
     const newProj: Project = {
       ...projData,
-      id: 'proj-' + Date.now(),
+      id: `proj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       paid: 0,
       outstanding: projData.value
     };
@@ -567,7 +971,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addClient = (cliData: Omit<Client, 'id' | 'totalRevenue' | 'outstandingBalance' | 'activeProjectsCount' | 'lastActivity'>) => {
     const newClient: Client = {
       ...cliData,
-      id: 'cli-' + Date.now(),
+      id: `cli-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       totalRevenue: 0,
       outstandingBalance: 0,
       activeProjectsCount: 0,
@@ -581,7 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nextNum = 'INV-0' + (invoices.length + 25);
     const newInv: Invoice = {
       ...invData,
-      id: 'inv-' + Date.now(),
+      id: `inv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       number: nextNum
     };
     setInvoices((prev) => [newInv, ...prev]);
@@ -613,8 +1017,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const switchWorkspace = (type: WorkspaceType) => {
     setWorkspaceType(type);
+    const normalized = type === 'student' ? 'student' : 'freelancer';
+    if (user && isSupabaseConfigured()) {
+      supabase.from('profiles').update({
+        workspace_type: normalized,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id).then(({ error }) => {
+        if (error) console.warn('Supabase update workspace error:', error);
+      });
+    }
+
     if (type === 'student') {
-      setWorkspaceName('Alex (Pelajar & Mahasiswa)');
+      setWorkspaceName(userProfile?.fullName || 'Alex (Pelajar & Mahasiswa)');
       showToast(
         language === 'id' ? 'Mode Pelajar Aktif 🎓' : 'Student Mode Active 🎓',
         language === 'id' 
@@ -623,7 +1037,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'info'
       );
     } else {
-      setWorkspaceName('Alex Rivera Studio');
+      setWorkspaceName(userProfile?.fullName ? `${userProfile.fullName} Studio` : 'Alex Rivera Studio');
       showToast(
         language === 'id' ? 'Mode Pekerja Lepas Aktif 💼' : 'Freelance Mode Active 💼',
         language === 'id' 
@@ -639,11 +1053,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const now = new Date().toISOString();
     const newNote: NoteItem = {
       ...noteData,
-      id: `note-${Date.now()}`,
+      id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: now,
       updatedAt: now,
     };
     setNotes((prev) => [newNote, ...prev]);
+
+    if (user && isSupabaseConfigured()) {
+      supabase.from('notes').insert({
+        user_id: user.id,
+        title: noteData.title,
+        content: noteData.content,
+        category: noteData.category,
+        subject: noteData.subject || null,
+        tags: noteData.tags,
+        pinned: Boolean(noteData.pinned),
+        color: noteData.color || 'emerald',
+        workspace: noteData.workspace
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase insert note error:', error);
+      });
+    }
+
     showToast(
       language === 'id' ? 'Catatan Disimpan' : 'Note Saved',
       language === 'id' ? `"${newNote.title}" berhasil ditambahkan.` : `"${newNote.title}" added successfully.`,
@@ -655,6 +1086,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, ...updated, updatedAt: new Date().toISOString() } : n))
     );
+
+    if (user && isSupabaseConfigured() && !id.startsWith('note-')) {
+      supabase.from('notes').update({
+        ...updated,
+        updated_at: new Date().toISOString()
+      }).eq('id', id).eq('user_id', user.id).then(({ error }) => {
+        if (error) console.warn('Supabase update note error:', error);
+      });
+    }
+
     showToast(
       language === 'id' ? 'Catatan Diperbarui' : 'Note Updated',
       language === 'id' ? 'Perubahan catatan berhasil disimpan.' : 'Note changes saved.',
@@ -664,6 +1105,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteNote = (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+
+    if (user && isSupabaseConfigured() && !id.startsWith('note-')) {
+      supabase.from('notes').delete().eq('id', id).eq('user_id', user.id).then(({ error }) => {
+        if (error) console.warn('Supabase delete note error:', error);
+      });
+    }
+
     showToast(
       language === 'id' ? 'Catatan Dihapus' : 'Note Deleted',
       language === 'id' ? 'Catatan telah dihapus.' : 'Note removed.',
@@ -673,7 +1121,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const togglePinNote = (id: string) => {
     setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n))
+      prev.map((n) => {
+        if (n.id === id) {
+          const newPinned = !n.pinned;
+          if (user && isSupabaseConfigured() && !id.startsWith('note-')) {
+            supabase.from('notes').update({
+              pinned: newPinned,
+              updated_at: new Date().toISOString()
+            }).eq('id', id).eq('user_id', user.id).then();
+          }
+          return { ...n, pinned: newPinned };
+        }
+        return n;
+      })
     );
   };
 
@@ -681,9 +1141,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTask = (taskData: Omit<TaskItem, 'id'>) => {
     const newTask: TaskItem = {
       ...taskData,
-      id: `task-${Date.now()}`,
+      id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     };
     setTasks((prev) => [newTask, ...prev]);
+
+    if (user && isSupabaseConfigured()) {
+      supabase.from('tasks').insert({
+        user_id: user.id,
+        title: taskData.title,
+        description: taskData.description || null,
+        due_date: taskData.dueDate,
+        due_time: taskData.dueTime || '23:59',
+        priority: taskData.priority,
+        status: taskData.status,
+        category: taskData.category,
+        subject_or_project: taskData.subjectOrProject || null,
+        workspace: taskData.workspace
+      }).then(({ error }) => {
+        if (error) console.warn('Supabase insert task error:', error);
+      });
+    }
+
     showToast(
       language === 'id' ? 'Tugas Ditambahkan' : 'Task Added',
       language === 'id' ? `"${newTask.title}" telah ditambahkan ke jadwal.` : `"${newTask.title}" added to schedule.`,
@@ -695,10 +1173,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === id) {
+          const completedAt = status === 'completed' ? new Date().toISOString() : undefined;
+          if (user && isSupabaseConfigured() && !id.startsWith('task-')) {
+            supabase.from('tasks').update({
+              status,
+              completed_at: completedAt || null,
+              updated_at: new Date().toISOString()
+            }).eq('id', id).eq('user_id', user.id).then();
+          }
           return {
             ...t,
             status,
-            completedAt: status === 'completed' ? new Date().toISOString() : undefined,
+            completedAt,
           };
         }
         return t;
@@ -715,10 +1201,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateTask = (id: string, updated: Partial<Omit<TaskItem, 'id'>>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updated } : t)));
+    if (user && isSupabaseConfigured() && !id.startsWith('task-')) {
+      supabase.from('tasks').update({
+        ...updated,
+        updated_at: new Date().toISOString()
+      }).eq('id', id).eq('user_id', user.id).then();
+    }
   };
 
   const deleteTask = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (user && isSupabaseConfigured() && !id.startsWith('task-')) {
+      supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id).then();
+    }
     showToast(
       language === 'id' ? 'Tugas Dihapus' : 'Task Deleted',
       language === 'id' ? 'Tugas telah dihapus dari daftar.' : 'Task removed.',
@@ -827,6 +1322,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         showToast,
         dismissToast,
+        // Supabase Auth
+        user,
+        userProfile,
+        authLoading,
+        isGuestDemo,
+        login,
+        register,
+        logout,
+        bypassDemoAuth,
       }}
     >
       {children}

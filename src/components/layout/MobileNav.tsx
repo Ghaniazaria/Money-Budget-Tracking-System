@@ -18,7 +18,13 @@ import {
   Receipt,
   Globe,
   Coins,
-  Calculator
+  Calculator,
+  CheckSquare,
+  BookOpen,
+  GraduationCap,
+  Briefcase,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavigationTab } from '../../types';
@@ -31,6 +37,13 @@ export const MobileNav: React.FC = () => {
     openReceiptModal,
     openQuickActionSheet,
     workspaceName,
+    workspaceType,
+    switchWorkspace,
+    user,
+    userProfile,
+    logout,
+    tasks,
+    notes,
     setIsClientPortalMode,
     theme,
     toggleTheme,
@@ -44,13 +57,25 @@ export const MobileNav: React.FC = () => {
   } = useApp();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
+  const isStudent = workspaceType === 'student';
+  const pendingTasksCount = tasks.filter(t => t.status !== 'completed').length;
+
   const leftItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'overview', label: t('overview', 'Overview'), icon: <LayoutDashboard className="w-5 h-5" /> },
-    { tab: 'budget', label: t('budget', 'Budget'), icon: <PieChart className="w-5 h-5" /> },
+    { tab: 'budget', label: isStudent ? (language === 'id' ? 'Anggaran' : 'Budget') : t('budget', 'Budget'), icon: <PieChart className="w-5 h-5" /> },
   ];
 
   const rightItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
-    { tab: 'transactions', label: language === 'id' ? 'Aktivitas' : t('transactions', 'Activity'), icon: <ArrowLeftRight className="w-5 h-5" /> },
+    { 
+      tab: 'tasks', 
+      label: isStudent ? (language === 'id' ? 'Tugas' : 'Tasks') : (language === 'id' ? 'Projek' : 'Tasks'), 
+      icon: <CheckSquare className="w-5 h-5" /> 
+    },
+    { 
+      tab: 'notes', 
+      label: isStudent ? (language === 'id' ? 'Catatan' : 'Notes') : (language === 'id' ? 'Brief' : 'Notes'), 
+      icon: <BookOpen className="w-5 h-5" /> 
+    },
   ];
 
   return (
@@ -72,15 +97,15 @@ export const MobileNav: React.FC = () => {
 
             <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-800 dark:bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                  <div className="w-3.5 h-3.5 border-2 border-white rounded-full"></div>
+                <div className="w-8 h-8 rounded-lg bg-emerald-800 dark:bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  {isStudent ? <GraduationCap className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
                 </div>
                 <div>
                   <span className="font-bold text-xs text-gray-900 dark:text-gray-100 block">
                     {workspaceName}
                   </span>
                   <span className="text-[10px] text-gray-400">
-                    {language === 'id' ? 'Menu & Pengaturan Cepat' : 'Menu & Quick Settings'}
+                    {isStudent ? (language === 'id' ? 'Mode Pelajar / Mahasiswa' : 'Student Mode') : (language === 'id' ? 'Mode Pekerja Lepas' : 'Freelancer Mode')}
                   </span>
                 </div>
               </div>
@@ -90,6 +115,32 @@ export const MobileNav: React.FC = () => {
                 className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Workspace Switcher in Mobile Drawer */}
+            <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center gap-1 text-xs">
+              <button
+                onClick={() => switchWorkspace('student')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+                  isStudent
+                    ? 'bg-white dark:bg-gray-700 text-emerald-800 dark:text-emerald-300 shadow-xs font-semibold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>{language === 'id' ? 'Pelajar' : 'Student'}</span>
+              </button>
+              <button
+                onClick={() => switchWorkspace('freelancer')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+                  !isStudent
+                    ? 'bg-white dark:bg-gray-700 text-emerald-800 dark:text-emerald-300 shadow-xs font-semibold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>{language === 'id' ? 'Pekerja Lepas' : 'Freelancer'}</span>
               </button>
             </div>
 
@@ -115,7 +166,7 @@ export const MobileNav: React.FC = () => {
               >
                 <span className="text-[10px] text-gray-400 font-medium">{language === 'id' ? 'Bahasa' : 'Language'}</span>
                 <span className="text-xs font-bold text-gray-900 dark:text-gray-100 mt-0.5">
-                  {language === 'id' ? '🇮🇩 Indonesia' : '🇺🇸 English'}
+                  {language === 'id' ? '🇮🇩 ID' : '🇺🇸 EN'}
                 </span>
               </button>
 
@@ -144,82 +195,109 @@ export const MobileNav: React.FC = () => {
 
             {/* Menu Grid */}
             <div className="grid grid-cols-2 gap-2.5 pt-1 text-xs font-medium">
-              {/* Projects moved to More menu */}
               <button
-                id="drawer-projects-btn"
-                onClick={() => { setActiveTab('projects'); setIsMoreMenuOpen(false); }}
-                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                onClick={() => { setActiveTab('transactions'); setIsMoreMenuOpen(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <FolderKanban className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
-                  <span>{t('projects', 'Projects')}</span>
-                </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
-                  {projects.length}
-                </span>
+                <ArrowLeftRight className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
+                <span>{language === 'id' ? 'Riwayat Transaksi' : 'Transactions'}</span>
               </button>
-              <button
-                onClick={() => { setActiveTab('clients'); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
-              >
-                <Users className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
-                <span>{t('clients', 'Clients')}</span>
-              </button>
-              <button
-                onClick={() => { setActiveTab('invoices'); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
-              >
-                <FileText className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
-                <span>{t('invoices', 'Invoices')}</span>
-              </button>
+              
+              {!isStudent && (
+                <button
+                  id="drawer-projects-btn"
+                  onClick={() => { setActiveTab('projects'); setIsMoreMenuOpen(false); }}
+                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FolderKanban className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
+                    <span>{t('projects', 'Projects')}</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                    {projects.length}
+                  </span>
+                </button>
+              )}
+
+              {!isStudent && (
+                <button
+                  onClick={() => { setActiveTab('clients'); setIsMoreMenuOpen(false); }}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                >
+                  <Users className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
+                  <span>{t('clients', 'Clients')}</span>
+                </button>
+              )}
+
+              {!isStudent && (
+                <button
+                  onClick={() => { setActiveTab('invoices'); setIsMoreMenuOpen(false); }}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
+                  <span>{t('invoices', 'Invoices')}</span>
+                </button>
+              )}
+
               <button
                 onClick={() => { setActiveTab('ai-insights'); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
                 <span>{t('aiInsights', 'AI Insights')}</span>
               </button>
+
               <button
                 onClick={() => { setActiveTab('documents'); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
               >
                 <Files className="w-4 h-4 text-emerald-800 dark:text-emerald-400" />
-                <span>{t('documents', 'Documents')}</span>
+                <span>{isStudent ? (language === 'id' ? 'Berkas & Lampiran' : 'Documents') : t('documents', 'Documents')}</span>
               </button>
+
               <button
                 onClick={() => { setActiveTab('settings'); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-800 dark:text-gray-200 text-left border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
               >
                 <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 <span>{t('settings', 'Settings')}</span>
               </button>
-              <button
-                onClick={() => { setIsClientPortalMode(true); setIsMoreMenuOpen(false); }}
-                className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 text-left border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
-              >
-                <ExternalLink className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                <span>{language === 'id' ? 'Portal Klien' : 'Client Portal'}</span>
-              </button>
+
+              {!isStudent && (
+                <button
+                  onClick={() => { setIsClientPortalMode(true); setIsMoreMenuOpen(false); }}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-900 dark:text-emerald-300 text-left border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                  <span>{language === 'id' ? 'Portal Klien' : 'Client Portal'}</span>
+                </button>
+              )}
             </div>
 
-            {/* Mobile Drawer Currency & Language Controls */}
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+            {/* User Profile & Logout */}
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {userProfile?.fullName || user?.email || 'User'}
+                  </p>
+                  <p className="text-[10px] text-gray-400 truncate">
+                    {user?.email || (isStudent ? 'Akun Pelajar' : 'Freelance Studio')}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => {
-                  openConverter();
                   setIsMoreMenuOpen(false);
+                  logout();
                 }}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer border border-red-200 dark:border-red-900/50"
               >
-                <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                  <span className="font-semibold text-xs">
-                    {language === 'id' ? 'Kalkulator Konversi IDR ⇄ USD' : 'IDR ⇄ USD Currency Converter'}
-                  </span>
-                </div>
-                <span className="text-xs font-bold bg-emerald-800 text-white px-2 py-0.5 rounded">
-                  {currency}
-                </span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{language === 'id' ? 'Keluar' : 'Sign Out'}</span>
               </button>
             </div>
           </div>
@@ -264,7 +342,7 @@ export const MobileNav: React.FC = () => {
           </span>
         </button>
 
-        {/* Right Nav: Activity & More (contains Projects) */}
+        {/* Right Nav: Tasks & Notes */}
         <div className="flex items-center gap-1">
           {rightItems.map((item) => {
             const isActive = activeTab === item.tab;
@@ -272,7 +350,7 @@ export const MobileNav: React.FC = () => {
               <button
                 key={item.tab}
                 onClick={() => setActiveTab(item.tab)}
-                className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+                className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg text-[10px] font-medium transition-colors cursor-pointer relative ${
                   isActive ? 'text-emerald-800 dark:text-emerald-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                 }`}
               >
@@ -280,6 +358,9 @@ export const MobileNav: React.FC = () => {
                   {item.icon}
                 </div>
                 <span className="mt-0.5">{item.label}</span>
+                {item.tab === 'tasks' && pendingTasksCount > 0 && (
+                  <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+                )}
               </button>
             );
           })}
@@ -287,7 +368,7 @@ export const MobileNav: React.FC = () => {
           <button
             id="mobile-nav-more-btn"
             onClick={() => setIsMoreMenuOpen(true)}
-            className="flex flex-col items-center justify-center py-1 px-3 rounded-lg text-[10px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer"
+            className="flex flex-col items-center justify-center py-1 px-2.5 rounded-lg text-[10px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer"
           >
             <div className="p-1 rounded-md">
               <MoreHorizontal className="w-5 h-5" />
@@ -299,4 +380,5 @@ export const MobileNav: React.FC = () => {
     </>
   );
 };
+
 

@@ -12,6 +12,8 @@ import { AIInsightsView } from './components/views/AIInsightsView';
 import { DocumentsView } from './components/views/DocumentsView';
 import { SettingsView } from './components/views/SettingsView';
 import { ClientPortalView } from './components/views/ClientPortalView';
+import { NotesTasksView } from './components/views/NotesTasksView';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { AddTransactionModal } from './components/modals/AddTransactionModal';
 import { ScanReceiptModal } from './components/modals/ScanReceiptModal';
 import { AppleActionSheetModal } from './components/modals/AppleActionSheetModal';
@@ -20,7 +22,29 @@ import { CurrencyConverterModal } from './components/modals/CurrencyConverterMod
 import { ToastContainer } from './components/common/ToastContainer';
 
 const MainContent: React.FC = () => {
-  const { activeTab, isClientPortalMode } = useApp();
+  const { activeTab, isClientPortalMode, user, isGuestDemo, authLoading } = useApp();
+
+  // Show a minimal smooth loading indicator while checking auth session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0B0F17] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-emerald-800/30 border-t-emerald-800 dark:border-emerald-500/30 dark:border-t-emerald-500 rounded-full animate-spin"></div>
+          <span className="text-xs text-gray-500 font-medium">Memuat Fins...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Authentication Gate: Require login or guest exploration
+  if (!user && !isGuestDemo) {
+    return (
+      <>
+        <AuthScreen />
+        <ToastContainer />
+      </>
+    );
+  }
 
   // If Client Portal preview mode is active, render the dedicated client-facing portal
   if (isClientPortalMode) {
@@ -40,6 +64,9 @@ const MainContent: React.FC = () => {
         return <BudgetView />;
       case 'transactions':
         return <TransactionsView />;
+      case 'notes':
+      case 'tasks':
+        return <NotesTasksView />;
       case 'projects':
         return <ProjectsView />;
       case 'clients':

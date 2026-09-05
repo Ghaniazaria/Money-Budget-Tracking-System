@@ -176,7 +176,7 @@ app.post('/api/ask-advisor', async (req, res) => {
 
     if (genAI) {
       try {
-        const systemPrompt = `You are the FlowLedger Calm Financial Intelligence Advisor for a freelance digital product designer / developer / agency.
+        const systemPrompt = `You are the Fins Calm Financial Intelligence Advisor for a freelance digital product designer / developer / agency.
 Tone: Calm, clear, objective, reassuring, mathematically grounded, no panic, friendly.
 Language: ${isIndo ? 'Respond strictly in natural, professional Indonesian (Bahasa Indonesia).' : 'Respond in clear, professional English.'}
 Current financial snapshot (${currency}):
@@ -355,7 +355,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`FlowLedger Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Fins Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

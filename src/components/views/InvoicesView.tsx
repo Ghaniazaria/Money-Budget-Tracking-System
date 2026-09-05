@@ -342,7 +342,7 @@ export const InvoicesView: React.FC = () => {
               {/* Top Header */}
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">FlowLedger Studio</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">Fins Studio</div>
                   <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5">Alex Rivera • Design & Advisory</p>
                   <p className="text-gray-400 dark:text-gray-500 text-[11px]">alex@riveradesign.io • Jakarta / San Francisco</p>
                 </div>

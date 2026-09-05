@@ -257,8 +257,8 @@ export const SettingsView: React.FC = () => {
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {language === 'id' 
-                ? 'FlowLedger menggunakan palet aksen Hijau Tua (Dark Green) yang menenangkan mata.' 
-                : 'FlowLedger uses a tranquil dark green ("Hijau Tua") palette.'}
+                ? 'Fins menggunakan palet aksen Hijau Tua (Dark Green) yang menenangkan mata.' 
+                : 'Fins uses a tranquil dark green ("Hijau Tua") palette.'}
             </p>
           </div>
           <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">

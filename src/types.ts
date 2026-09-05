@@ -139,7 +139,19 @@ export interface AttentionItem {
   priority: 'high' | 'medium';
 }
 
-export type WorkspaceType = 'freelance' | 'student';
+export type WorkspaceType = 'student' | 'freelancer' | 'freelance';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName?: string;
+  avatarUrl?: string;
+  workspaceType: 'student' | 'freelancer';
+  currency: Currency;
+  language: Language;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface NoteItem {
   id: string;
@@ -175,6 +187,7 @@ export type NavigationTab =
   | 'transactions'
   | 'projects'
   | 'notes'
+  | 'tasks'
   | 'clients'
   | 'invoices'
   | 'ai-insights'

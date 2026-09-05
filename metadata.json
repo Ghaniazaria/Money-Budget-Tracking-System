@@ -1,6 +1,6 @@
 {
-  "name": "FlowLedger",
-  "description": "Calm, modern finance, budget, project, and client management for freelancers and independent businesses.",
+  "name": "Fins",
+  "description": "Calm finance, budget tracking, notes, and task management with tailored workspaces for students and freelancers.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

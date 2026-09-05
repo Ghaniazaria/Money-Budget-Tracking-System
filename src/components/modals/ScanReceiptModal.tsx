@@ -411,7 +411,7 @@ export const ScanReceiptModal: React.FC = () => {
           suggestedCategory: finalCategoryName,
           items: finalItems,
           confidence: data.confidence || 96,
-          notes: sampleData?.notes || data.notes || (language === 'id' ? 'Dipindai via OCR Gemini Vision' : 'Scanned via FlowLedger OCR'),
+          notes: sampleData?.notes || data.notes || (language === 'id' ? 'Dipindai via OCR Gemini Vision' : 'Scanned via Fins OCR'),
           imageUrl: base64Url
         });
 

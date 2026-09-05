@@ -171,7 +171,7 @@ export const AIInsightsView: React.FC = () => {
     if (!questionText) return;
 
     const userMessage = {
-      id: 'msg-' + Date.now(),
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       sender: 'user' as const,
       text: questionText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -207,7 +207,7 @@ export const AIInsightsView: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         const aiMessage = {
-          id: 'msg-ai-' + Date.now(),
+          id: `msg-ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           sender: 'ai' as const,
           text: data.answer || (language === 'id' ? 'Posisi kas Anda tetap aman dan stabil.' : 'Your runway remains well-insulated against typical freelance variance.'),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -218,7 +218,7 @@ export const AIInsightsView: React.FC = () => {
       }
     } catch {
       const fallbackAi = {
-        id: 'msg-ai-' + Date.now(),
+        id: `msg-ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         sender: 'ai' as const,
         text: language === 'id'
           ? `Cadangan likuid kas Anda sebesar ${formatCurrency(totalAvailableBalance)} siap menopang kebutuhan ini sambil mempertahankan lebih dari 4.5 bulan runway operasional. Disarankan menyisihkan 15% untuk pos cadangan pajak studio.`

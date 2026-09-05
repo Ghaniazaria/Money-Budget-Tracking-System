@@ -87,8 +87,8 @@ export const OnboardingModal: React.FC = () => {
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {language === 'id'
-                  ? 'FlowLedger akan menyesuaikan pos kategori anggaran dan ruang lingkup proyek sesuai profesi Anda.'
-                  : 'FlowLedger will optimize your budget categories and project scopes for your craft.'}
+                  ? 'Fins akan menyesuaikan pos kategori anggaran dan ruang lingkup proyek sesuai profesi Anda.'
+                  : 'Fins will optimize your budget categories and project scopes for your craft.'}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
                 {roles.map((r) => {
@@ -217,7 +217,7 @@ export const OnboardingModal: React.FC = () => {
                 className="flex items-center gap-1.5 px-5 py-2 bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{language === 'id' ? 'Mulai Gunakan FlowLedger' : 'Launch FlowLedger'}</span>
+                <span>{language === 'id' ? 'Mulai Gunakan Fins' : 'Launch Fins'}</span>
               </button>
             )}
           </div>

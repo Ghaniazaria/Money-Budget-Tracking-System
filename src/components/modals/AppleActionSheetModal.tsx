@@ -88,7 +88,7 @@ export const AppleActionSheetModal: React.FC = () => {
         date: '2026-09-04',
         description: `${merchant} (E-Receipt Upload)`,
         isRecurring: false,
-        note: 'Struk elektronik terkirim via Quick Upload FlowLedger'
+        note: 'Struk elektronik terkirim via Quick Upload Fins'
       },
       {
         merchant,
@@ -144,7 +144,7 @@ export const AppleActionSheetModal: React.FC = () => {
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
                 {language === 'id' 
-                  ? 'Pilih metode yang Anda inginkan untuk mencatat ke buku besar FlowLedger' 
+                  ? 'Pilih metode yang Anda inginkan untuk mencatat ke buku besar Fins' 
                   : 'Select your preferred method to record this transaction into your studio ledger'}
               </p>
             </div>
@@ -250,7 +250,7 @@ export const AppleActionSheetModal: React.FC = () => {
                   {language === 'id' ? 'Kirim / Unggah Struk' : 'Send or Upload'}
                 </span>
               </div>
-              <span className="text-[10px] text-gray-400">FlowLedger Hub</span>
+              <span className="text-[10px] text-gray-400">Fins Hub</span>
             </div>
 
             {/* Direct Mobile Upload Button */}
@@ -298,7 +298,7 @@ export const AppleActionSheetModal: React.FC = () => {
                     {copiedType === 'whatsapp' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                   <a
-                    href="https://wa.me/6281289003569?text=Halo%20FlowLedger%2C%20saya%20kirimkan%20struk%20pengeluaran%20studio"
+                    href="https://wa.me/6281289003569?text=Halo%20Fins%2C%20saya%20kirimkan%20struk%20pengeluaran%20studio"
                     target="_blank"
                     rel="noreferrer"
                     className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors"

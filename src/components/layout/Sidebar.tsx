@@ -19,7 +19,12 @@ import {
   Receipt,
   Globe,
   Coins,
-  Calculator
+  Calculator,
+  BookOpen,
+  CheckSquare,
+  GraduationCap,
+  Briefcase,
+  LogOut
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavigationTab } from '../../types';
@@ -32,11 +37,15 @@ export const Sidebar: React.FC = () => {
     openReceiptModal,
     workspaceName, 
     setWorkspaceName,
+    workspaceType,
+    switchWorkspace,
     setIsClientPortalMode,
     setIsOnboardingOpen,
     attentionItems,
     invoices,
     projects,
+    notes,
+    tasks,
     theme,
     toggleTheme,
     language,
@@ -44,6 +53,9 @@ export const Sidebar: React.FC = () => {
     currency,
     toggleCurrency,
     openConverter,
+    user,
+    userProfile,
+    logout,
     t
   } = useApp();
 
@@ -52,60 +64,120 @@ export const Sidebar: React.FC = () => {
 
   const overdueInvoicesCount = invoices.filter((i) => i.status === 'overdue').length;
   const activeProjectsCount = projects.filter((p) => p.status === 'active').length;
+  const pendingTasksCount = tasks.filter((t) => t.status !== 'completed').length;
 
-  const mainNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode; badge?: string | number; badgeColor?: string }[] = [
-    { 
-      tab: 'overview', 
-      label: t('overview', 'Overview'), 
-      icon: <LayoutDashboard className="w-4 h-4" />,
-      badge: attentionItems.length > 0 ? attentionItems.length : undefined,
-      badgeColor: 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300'
-    },
-    { 
-      tab: 'budget', 
-      label: t('budget', 'Budget'), 
-      icon: <PieChart className="w-4 h-4" /> 
-    },
-    { 
-      tab: 'transactions', 
-      label: t('transactions', 'Transactions'), 
-      icon: <ArrowLeftRight className="w-4 h-4" /> 
-    },
-    { 
-      tab: 'projects', 
-      label: t('projects', 'Projects'), 
-      icon: <FolderKanban className="w-4 h-4" />,
-      badge: activeProjectsCount,
-      badgeColor: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-    },
-    { 
-      tab: 'clients', 
-      label: t('clients', 'Clients'), 
-      icon: <Users className="w-4 h-4" /> 
-    },
-    { 
-      tab: 'invoices', 
-      label: t('invoices', 'Invoices'), 
-      icon: <FileText className="w-4 h-4" />,
-      badge: overdueInvoicesCount > 0 ? `${overdueInvoicesCount} ${language === 'id' ? 'jatuh tempo' : 'due'}` : undefined,
-      badgeColor: 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'
-    },
-    { 
-      tab: 'ai-insights', 
-      label: t('aiInsights', 'AI Insights'), 
-      icon: <Sparkles className="w-4 h-4" /> 
-    },
-  ];
+  const isStudent = workspaceType === 'student';
+
+  // Dynamic Navigation Items tailored to Workspace Persona
+  const mainNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode; badge?: string | number; badgeColor?: string }[] = isStudent
+    ? [
+        { 
+          tab: 'overview', 
+          label: t('overview', 'Ringkasan'), 
+          icon: <LayoutDashboard className="w-4 h-4" />,
+          badge: attentionItems.length > 0 ? attentionItems.length : undefined,
+          badgeColor: 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300'
+        },
+        { 
+          tab: 'budget', 
+          label: language === 'id' ? 'Anggaran & Saku' : 'Allowance & Budget', 
+          icon: <PieChart className="w-4 h-4" /> 
+        },
+        { 
+          tab: 'transactions', 
+          label: t('transactions', 'Transaksi'), 
+          icon: <ArrowLeftRight className="w-4 h-4" /> 
+        },
+        { 
+          tab: 'notes', 
+          label: language === 'id' ? 'Catatan Kuliah' : 'Study Notes', 
+          icon: <BookOpen className="w-4 h-4" />,
+          badge: notes.length > 0 ? notes.length : undefined,
+          badgeColor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+        },
+        { 
+          tab: 'tasks', 
+          label: language === 'id' ? 'Tugas & Jadwal' : 'Tasks & Deadlines', 
+          icon: <CheckSquare className="w-4 h-4" />,
+          badge: pendingTasksCount > 0 ? pendingTasksCount : undefined,
+          badgeColor: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300'
+        },
+        { 
+          tab: 'ai-insights', 
+          label: t('aiInsights', 'AI Insights'), 
+          icon: <Sparkles className="w-4 h-4" /> 
+        },
+      ]
+    : [
+        { 
+          tab: 'overview', 
+          label: t('overview', 'Overview'), 
+          icon: <LayoutDashboard className="w-4 h-4" />,
+          badge: attentionItems.length > 0 ? attentionItems.length : undefined,
+          badgeColor: 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300'
+        },
+        { 
+          tab: 'budget', 
+          label: t('budget', 'Budget'), 
+          icon: <PieChart className="w-4 h-4" /> 
+        },
+        { 
+          tab: 'transactions', 
+          label: t('transactions', 'Transactions'), 
+          icon: <ArrowLeftRight className="w-4 h-4" /> 
+        },
+        { 
+          tab: 'projects', 
+          label: t('projects', 'Projects'), 
+          icon: <FolderKanban className="w-4 h-4" />,
+          badge: activeProjectsCount,
+          badgeColor: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+        },
+        { 
+          tab: 'clients', 
+          label: t('clients', 'Clients'), 
+          icon: <Users className="w-4 h-4" /> 
+        },
+        { 
+          tab: 'invoices', 
+          label: t('invoices', 'Invoices'), 
+          icon: <FileText className="w-4 h-4" />,
+          badge: overdueInvoicesCount > 0 ? `${overdueInvoicesCount} ${language === 'id' ? 'jatuh tempo' : 'due'}` : undefined,
+          badgeColor: 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'
+        },
+        { 
+          tab: 'notes', 
+          label: language === 'id' ? 'Catatan & Brief' : 'Notes & Briefs', 
+          icon: <BookOpen className="w-4 h-4" />,
+          badge: notes.length > 0 ? notes.length : undefined,
+          badgeColor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+        },
+        { 
+          tab: 'tasks', 
+          label: language === 'id' ? 'Tugas Proyek' : 'Project Tasks', 
+          icon: <CheckSquare className="w-4 h-4" />,
+          badge: pendingTasksCount > 0 ? pendingTasksCount : undefined,
+          badgeColor: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300'
+        },
+        { 
+          tab: 'ai-insights', 
+          label: t('aiInsights', 'AI Insights'), 
+          icon: <Sparkles className="w-4 h-4" /> 
+        },
+      ];
 
   const secondaryNavItems: { tab: NavigationTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'documents', label: t('documents', 'Documents'), icon: <Files className="w-4 h-4" /> },
     { tab: 'settings', label: t('settings', 'Settings'), icon: <Settings className="w-4 h-4" /> },
   ];
 
+  const displayName = userProfile?.fullName || (user?.email ? user.email.split('@')[0] : 'Alex Rivera');
+  const userInitials = displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AL';
+
   return (
     <aside id="sidebar-main" className="hidden md:flex fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-900 border-r border-[#E5E7EB] dark:border-gray-800 flex-col justify-between shrink-0 h-screen select-none transition-colors duration-200">
       {/* Top Header & Workspace Switcher */}
-      <div className="p-5 space-y-4">
+      <div className="p-5 space-y-4 overflow-y-auto">
         {/* Brand logo & name */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5">
@@ -113,8 +185,10 @@ export const Sidebar: React.FC = () => {
               <div className="w-4 h-4 border-2 border-white rounded-full"></div>
             </div>
             <div>
-              <span className="text-lg font-bold tracking-tight text-[#111827] dark:text-white">FlowLedger</span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 block leading-tight font-medium uppercase tracking-wider">Calm Finances</span>
+              <span className="text-lg font-bold tracking-tight text-[#111827] dark:text-white">Fins</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 block leading-tight font-medium uppercase tracking-wider">
+                {isStudent ? 'Student Edition' : 'Freelance Edition'}
+              </span>
             </div>
           </div>
         </div>
@@ -124,11 +198,15 @@ export const Sidebar: React.FC = () => {
           <button
             id="workspace-switcher-button"
             onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/80 hover:bg-gray-100/80 dark:hover:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/80 hover:bg-gray-100/80 dark:hover:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2 truncate">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-              <span className="truncate text-gray-800 dark:text-gray-200">{workspaceName}</span>
+              {isStudent ? (
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              ) : (
+                <Briefcase className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              )}
+              <span className="truncate text-gray-800 dark:text-gray-200 font-semibold">{workspaceName}</span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
           </button>
@@ -136,27 +214,39 @@ export const Sidebar: React.FC = () => {
           {isWorkspaceDropdownOpen && (
             <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1.5 z-50 text-xs">
               <div className="px-3 py-1 text-[10px] uppercase font-semibold text-gray-400 dark:text-gray-500 tracking-wider">
-                Workspaces
+                {language === 'id' ? 'Pilih Ruang Kerja' : 'Select Workspace'}
               </div>
               <button
                 onClick={() => {
-                  setWorkspaceName('Alex Rivera Studio');
+                  switchWorkspace('student');
                   setIsWorkspaceDropdownOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200"
+                className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 cursor-pointer"
               >
-                <span>Alex Rivera Studio (Business)</span>
-                {workspaceName === 'Alex Rivera Studio' && <Check className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400" />}
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+                  <div>
+                    <div className="font-semibold">{language === 'id' ? 'Pelajar & Mahasiswa' : 'Student & Academic'}</div>
+                    <div className="text-[10px] text-gray-400">{language === 'id' ? 'Uang saku, tugas & catatan kuliah' : 'Allowance, assignments & notes'}</div>
+                  </div>
+                </div>
+                {workspaceType === 'student' && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
               </button>
               <button
                 onClick={() => {
-                  setWorkspaceName('Personal Finances');
+                  switchWorkspace('freelancer');
                   setIsWorkspaceDropdownOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200"
+                className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 cursor-pointer"
               >
-                <span>Personal Finances</span>
-                {workspaceName === 'Personal Finances' && <Check className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400" />}
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+                  <div>
+                    <div className="font-semibold">{language === 'id' ? 'Pekerja Lepas / Studio' : 'Freelancer / Studio'}</div>
+                    <div className="text-[10px] text-gray-400">{language === 'id' ? 'Proyek, klien, invoice & billing' : 'Projects, clients & invoices'}</div>
+                  </div>
+                </div>
+                {workspaceType !== 'student' && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
               </button>
             </div>
           )}
@@ -303,25 +393,27 @@ export const Sidebar: React.FC = () => {
             <span>{theme === 'dark' ? (language === 'id' ? 'Mode Gelap' : 'Dark Mode') : (language === 'id' ? 'Mode Terang' : 'Light Mode')}</span>
           </div>
           <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300">
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            {theme === 'dark' ? (language === 'id' ? 'Terang' : 'Light') : (language === 'id' ? 'Gelap' : 'Dark')}
           </span>
         </button>
 
-        {/* Switch to Client Portal preview */}
-        <button
-          id="switch-to-client-portal-btn"
-          onClick={() => setIsClientPortalMode(true)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-medium transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="truncate font-medium">{language === 'id' ? 'Portal Klien (Pratinjau)' : 'Client Portal View'}</span>
-          </div>
-          <ExternalLink className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
-        </button>
+        {/* Switch to Client Portal preview (Only in Freelancer Mode) */}
+        {!isStudent && (
+          <button
+            id="switch-to-client-portal-btn"
+            onClick={() => setIsClientPortalMode(true)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-medium transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="truncate font-medium">{language === 'id' ? 'Portal Klien (Pratinjau)' : 'Client Portal View'}</span>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+          </button>
+        )}
 
         {/* User Profile Card */}
         <div className="relative">
@@ -332,11 +424,18 @@ export const Sidebar: React.FC = () => {
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200/50 dark:border-emerald-800/50">
-                AR
+                {userInitials}
               </div>
               <div className="min-w-0 text-xs">
-                <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">Alex Rivera</div>
-                <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">alex@flowledger.com</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1.5">
+                  <span>{displayName}</span>
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-medium ${isStudent ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'}`}>
+                    {isStudent ? 'Pelajar' : 'Freelance'}
+                  </span>
+                </div>
+                <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                  {user?.email || (language === 'id' ? 'Tamu (Eksplorasi)' : 'Guest Explorer')}
+                </div>
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
@@ -344,6 +443,16 @@ export const Sidebar: React.FC = () => {
 
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1.5 z-50 text-xs">
+              <button
+                onClick={() => {
+                  switchWorkspace(isStudent ? 'freelancer' : 'student');
+                  setIsProfileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer"
+              >
+                {isStudent ? <Briefcase className="w-3.5 h-3.5 text-emerald-600" /> : <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />}
+                <span>{isStudent ? (language === 'id' ? 'Ganti ke Pekerja Lepas' : 'Switch to Freelancer') : (language === 'id' ? 'Ganti ke Pelajar' : 'Switch to Student')}</span>
+              </button>
               <button
                 onClick={() => {
                   setIsOnboardingOpen(true);
@@ -363,6 +472,17 @@ export const Sidebar: React.FC = () => {
               >
                 <Settings className="w-3.5 h-3.5 text-gray-500" />
                 <span>{language === 'id' ? 'Akun & Preferensi' : 'Account & Preferences'}</span>
+              </button>
+              <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+              <button
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer font-medium"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{language === 'id' ? 'Keluar (Logout)' : 'Log Out'}</span>
               </button>
             </div>
           )}

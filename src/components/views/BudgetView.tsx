@@ -135,8 +135,8 @@ export const BudgetView: React.FC = () => {
             </div>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {language === 'id'
-                ? 'Rencanakan sekali → catat transaksi & struk → FlowLedger otomatis menghitung sisa.'
-                : 'Set it once → record transactions & receipts → FlowLedger automatically recalculates.'}
+                ? 'Rencanakan sekali → catat transaksi & struk → Fins otomatis menghitung sisa.'
+                : 'Set it once → record transactions & receipts → Fins automatically recalculates.'}
             </p>
           </div>
 
